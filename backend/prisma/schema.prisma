@@ -1,0 +1,260 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  OWNER
+  STAFF
+}
+
+enum SubscriberStatus {
+  ACTIVE
+  PENDING
+  EXPIRED
+  SUSPENDED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+}
+
+model User {
+  id                String          @id @db.Uuid
+  email             String          @unique
+  fullName          String?
+  phone             String?
+  role              Role            @default(OWNER)
+  avatarUrl         String?
+  licensePlan       String          @default("trial")
+  licenseKey        String?         @unique
+  licenseExpiresAt  DateTime?
+  maxLots           Int             @default(1)
+  onboardingDone    Boolean         @default(false)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  ownedLots         ParkingLot[]    @relation("LotOwner")
+  dayCloses         DayClose[]
+  auditLogs         AuditLog[]
+  supportTickets    SupportTicket[]
+
+  @@map("users")
+}
+
+model SupportTicket {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @db.Uuid
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email     String
+  kind      String
+  message   String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("support_tickets")
+}
+
+model ParkingLot {
+  id           String       @id @default(uuid()) @db.Uuid
+  name         String
+  address      String
+  city         String
+  district     String?
+  totalSpots   Int
+  spotPrefix   String       @default("")
+  monthlyRate  Decimal      @db.Decimal(10, 2)
+  hourlyRate   Decimal      @default(50) @db.Decimal(10, 2)
+  timeZone     String       @default("Europe/Istanbul")
+  nightStartHour Int        @default(22)
+  nightEndHour   Int        @default(7)
+  nightHourlyRate Decimal?  @db.Decimal(10, 2)
+  maxDailyCap    Decimal?   @db.Decimal(10, 2)
+  freeMinutes    Int        @default(0)
+  lostTicketFee  Decimal    @default(0) @db.Decimal(10, 2)
+  notifyEmail    String?
+  ownerId      String       @db.Uuid
+  owner        User         @relation("LotOwner", fields: [ownerId], references: [id])
+  subscribers  Subscriber[]
+  visits       Visit[]
+  dayCloses    DayClose[]
+  reservations Reservation[]
+  cashAdjustments CashAdjustment[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([ownerId])
+  @@map("parking_lots")
+}
+
+model Subscriber {
+  id           String            @id @default(uuid()) @db.Uuid
+  parkingLotId String            @db.Uuid
+  parkingLot   ParkingLot        @relation(fields: [parkingLotId], references: [id], onDelete: Cascade)
+  fullName     String
+  phone        String?
+  plate        String
+  brand        String?
+  model        String?
+  color        String?
+  spotCode     String?
+  startDate    DateTime          @db.Date
+  monthlyFee   Decimal           @db.Decimal(10, 2)
+  status       SubscriberStatus  @default(ACTIVE)
+  endedAt      DateTime?
+  notes        String?
+  payments     Payment[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([parkingLotId, plate])
+  @@index([parkingLotId, status])
+  @@map("subscribers")
+}
+
+enum VisitStatus {
+  OPEN
+  CLOSED
+  CANCELLED
+}
+
+model Visit {
+  id            String       @id @default(uuid()) @db.Uuid
+  parkingLotId  String       @db.Uuid
+  parkingLot    ParkingLot   @relation(fields: [parkingLotId], references: [id], onDelete: Cascade)
+  plate         String
+  fullName      String?
+  phone         String?
+  spotCode      String?
+  startedAt     DateTime     @default(now())
+  endedAt       DateTime?
+  billedHours   Int?
+  hourlyRate    Decimal?     @db.Decimal(10, 2)
+  totalPrice    Decimal?     @db.Decimal(10, 2)
+  isSubscriber  Boolean      @default(false)
+  status        VisitStatus  @default(OPEN)
+  method        PaymentMethod?
+  notes         String?
+  lostTicket    Boolean      @default(false)
+  adjustedAt    DateTime?
+  adjustmentNote String?
+  reservationId String?      @db.Uuid
+  reservation   Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([parkingLotId, status])
+  @@index([parkingLotId, plate])
+  @@index([parkingLotId, spotCode])
+  @@map("visits")
+}
+
+model Payment {
+  id           String         @id @default(uuid()) @db.Uuid
+  subscriberId String         @db.Uuid
+  subscriber   Subscriber     @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+  amount       Decimal        @db.Decimal(10, 2)
+  cycleNumber  Int
+  periodStart  DateTime       @db.Date
+  periodEnd    DateTime       @db.Date
+  paidAt       DateTime       @default(now())
+  method       PaymentMethod  @default(CASH)
+  notes        String?
+  createdAt    DateTime       @default(now())
+
+  @@unique([subscriberId, cycleNumber])
+  @@index([paidAt])
+  @@map("payments")
+}
+
+model DayClose {
+  id                  String      @id @default(uuid()) @db.Uuid
+  parkingLotId        String      @db.Uuid
+  parkingLot          ParkingLot  @relation(fields: [parkingLotId], references: [id], onDelete: Cascade)
+  businessDate        DateTime    @db.Date
+  closedAt            DateTime    @default(now())
+  closedById          String      @db.Uuid
+  closedBy            User        @relation(fields: [closedById], references: [id])
+  checkoutCount       Int
+  paidCheckouts       Int
+  subscriberCheckouts Int
+  hourlyRevenue       Decimal     @db.Decimal(10, 2)
+  subscriberRevenue   Decimal     @db.Decimal(10, 2)
+  totalRevenue        Decimal     @db.Decimal(10, 2)
+  cashTotal           Decimal     @db.Decimal(10, 2)
+  cardTotal           Decimal     @db.Decimal(10, 2)
+  transferTotal       Decimal     @db.Decimal(10, 2)
+  stillInside         Int         @default(0)
+  notes               String?
+
+  @@unique([parkingLotId, businessDate])
+  @@index([businessDate])
+  @@map("day_closes")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String?  @db.Uuid
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  method     String
+  path       String
+  action     String
+  entityId   String?
+  status     Int
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+enum ReservationStatus {
+  BOOKED
+  CHECKED_IN
+  CANCELLED
+  EXPIRED
+}
+
+model Reservation {
+  id           String             @id @default(uuid()) @db.Uuid
+  parkingLotId String             @db.Uuid
+  parkingLot   ParkingLot         @relation(fields: [parkingLotId], references: [id], onDelete: Cascade)
+  plate        String
+  fullName     String?
+  phone        String?
+  spotCode     String?
+  startsAt     DateTime
+  endsAt       DateTime
+  status       ReservationStatus  @default(BOOKED)
+  notes        String?
+  visits       Visit[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([parkingLotId, startsAt])
+  @@index([parkingLotId, plate])
+  @@map("reservations")
+}
+
+model CashAdjustment {
+  id           String         @id @default(uuid()) @db.Uuid
+  parkingLotId String         @db.Uuid
+  parkingLot   ParkingLot     @relation(fields: [parkingLotId], references: [id], onDelete: Cascade)
+  amount       Decimal        @db.Decimal(10, 2)
+  method       PaymentMethod  @default(CASH)
+  reason       String
+  createdAt    DateTime       @default(now())
+  createdById  String         @db.Uuid
+
+  @@index([parkingLotId, createdAt])
+  @@map("cash_adjustments")
+}
+

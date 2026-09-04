@@ -1,38 +1,34 @@
-# otopark ()
+# ParkKasa
 
-## Install the dependencies
+**Otopark kasa + abone + gün sonu.** Teslim edilen ürün web panelidir.
 
-```bash
-pnpm install
-# or: yarn/npm/bun install
-```
+Nakit kasa fiş basar; ParkKasa plaka, abone dönemi ve gün sonu kasasını tek panelde tutar.
 
-### Start the app in development mode (HMR, error reporting, etc.)
+Sürüm **1.1.0** · [Fiyat](https://parkkasa.com/#/fiyat) · Destek: [destek@parkkasa.com](mailto:destek@parkkasa.com)
 
-```bash
-quasar dev
-```
+Kurulum: [docs/KURULUM.md](docs/KURULUM.md) · Yayın: [docs/YAYIN.md](docs/YAYIN.md) · Sürüm notları: [CHANGELOG.md](CHANGELOG.md)
 
-### Format & Lint the files
+## Kapsam (vaat)
 
-```bash
-pnpm run lint
-# or: yarn/npm/bun run lint
-```
+- Web: giriş-çıkış, abone, gün sonu, fiş, CSV, rapor, rezervasyon
+- Lisans: ücretli anahtar ile süre ve tesis sayısı
+- Mobil uygulama ve Electron bu teklifin parçası değildir
 
-...or just check formatting & linting:
+## Fiyat (liste)
 
-```bash
-pnpm run lint:check
-# or: yarn/npm/bun run lint:check
-```
+| Plan | Tesis | Süre | Liste |
+| --- | --- | --- | --- |
+| Kasa | 1 | yıl | 24.900 ₺ |
+| İşletme | 5 | yıl | 49.900 ₺ |
 
-### Build the app for production
+ParkKasa aboneliği panel dışında faturalanır (uygulama içi ödeme yok). Otoparkın müşterisine e-fatura ürün özelliği değildir.
 
-```bash
-quasar build
-```
+## Komutlar
 
-### Customize the configuration
+| Komut | Ne yapar |
+| --- | --- |
+| `npm run dev` | API + web |
+| `cd backend && npm test` | API testleri |
+| `cd backend && npm run prisma:seed` | Demo hesap + örnek veri |
 
-See [Configuring quasar.config.js](https://v2.quasar.dev/quasar-cli-vite/quasar-config-file).
+Panel: `http://localhost:9000` · API: `http://localhost:3000/api/health`

@@ -11,7 +11,7 @@ export default defineConfig((/* ctx */) => {
     // app boot file (/src/boot)
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-vite/boot-files
-    boot: [],
+    boot: ['axios', 'supabase'],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#css
     css: ['app.css'],
@@ -26,12 +26,15 @@ export default defineConfig((/* ctx */) => {
       // 'line-awesome',
       // 'roboto-font-latin-ext', // this or either 'roboto-font', NEVER both!
 
-      'roboto-font', // optional, you are not bound to it
-      'material-icons', // optional, you are not bound to it
+      // 'roboto-font',
+      'material-icons',
     ],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#build
     build: {
+      env: {
+        clientPrefix: 'VITE_',
+      },
       target: {
         // browser: 'baseline-widely-available',
         // node: 'node22'
@@ -80,20 +83,21 @@ export default defineConfig((/* ctx */) => {
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework
     framework: {
-      config: {},
-
-      // iconSet: 'material-icons', // Quasar icon set
-      // lang: 'en-US', // Quasar language pack
-
-      // For special cases outside of where the auto-import strategy can have an impact
-      // (like functional components as one of the examples),
-      // you can manually specify Quasar components/directives to be available everywhere:
-      //
-      // components: [],
-      // directives: [],
-
-      // Quasar plugins
-      plugins: [],
+      config: {
+        brand: {
+          primary: '#3f6b54',
+          secondary: '#e4ebe6',
+          accent: '#c17a3a',
+          dark: '#1c1f24',
+          positive: '#3f6b54',
+          negative: '#b42318',
+          info: '#4d5d68',
+          warning: '#c17a3a',
+        },
+        notify: { position: 'top', timeout: 2500 },
+      },
+      lang: 'tr',
+      plugins: ['Notify', 'Dialog', 'Loading', 'Meta'],
     },
 
     // animations: 'all', // --- includes all animations
@@ -199,23 +203,39 @@ export default defineConfig((/* ctx */) => {
       // specify the debugging port to use for the Electron app when running in development mode
       inspectPort: 5858,
 
-      bundler: 'packager', // 'packager' or 'builder'
+      bundler: 'builder',
 
       packager: {
-        // https://github.com/electron-userland/electron-packager/blob/master/docs/api.md#options
-        // OS X / Mac App Store
-        // appBundleId: '',
-        // appCategoryType: '',
-        // osxSign: '',
-        // protocol: 'myapp://path',
-        // Windows only
-        // win32metadata: { ... }
+        appBundleId: 'tr.parkkasa.desktop',
+        appCategoryType: 'public.app-category.business',
       },
 
       builder: {
-        // https://www.electron.build/configuration
-
-        appId: '',
+        appId: 'tr.parkkasa.desktop',
+        productName: 'ParkKasa',
+        copyright: 'Copyright © ParkKasa',
+        artifactName: 'ParkKasa-${version}-${os}-${arch}.${ext}',
+        publish: {
+          provider: 'generic',
+          url: 'https://updates.parkkasa.com/desktop',
+        },
+        mac: {
+          category: 'public.app-category.business',
+          target: ['dmg', 'zip'],
+          hardenedRuntime: true,
+          gatekeeperAssess: false,
+        },
+        win: {
+          target: ['nsis'],
+        },
+        linux: {
+          target: ['AppImage'],
+          category: 'Office',
+        },
+        nsis: {
+          oneClick: false,
+          allowToChangeInstallationDirectory: true,
+        },
       },
     },
 
